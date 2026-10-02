@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>銓靠隊友 - 營運管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        .bg-home-cover {
+            background-image: url('cover.jpg');
+        }
+        @media (min-width: 768px) {
+            .bg-home-cover {
+                background-image: url('cover_desktop.jpg');
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#fef8ef] bg-home-cover bg-contain bg-center bg-fixed bg-no-repeat text-gray-800 font-sans antialiased h-screen overflow-x-hidden">
+
+    <!-- 登入畫面 (使用與首頁相同的自適應背景圖) -->
+    <div id="loginContainer" class="fixed inset-0 flex flex-col justify-center items-center z-[100] px-4">
+        <!-- 半透明黑色遮罩，讓登入框凸顯 -->
+        <div class="absolute inset-0 bg-black/60"></div>
+        
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md text-center relative z-10 border border-white/20">
+            <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">銓靠隊友 營運系統</h1>
+            <p id="loginStatus" class="text-sm text-gray-500 mb-6">⏳ 正在連線讀取資料庫...</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left hidden">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">帳號 (登入 ID)</label>
+                    <input type="text" id="loginId" required class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="請輸入帳號">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">密碼</label>
+                    <input type="password" id="loginPwd" required class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500" placeholder="請輸入密碼">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition mt-4">登入系統</button>
+            </form>
+        </div>
+        <p class="text-white/60 text-xs mt-6 relative z-10">Antigravity Badminton Management System</p>
+    </div>
+
+    <!-- 系統主程式 (初始隱藏) -->
+    <div id="appContainer" class="hidden">
+        
+    <!-- 頂部導覽 -->
+    <nav class="fixed top-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/70 to-transparent">
+        <div class="text-white font-bold drop-shadow-md flex items-center">
+            <span id="userInfo" class="text-sm bg-black/50 px-2 py-1 rounded backdrop-blur-sm border border-white/20">👑 管理員</span>
+            <button onclick="syncData()" id="syncTopBtn" class="ml-2 text-xs bg-cyan-600/90 backdrop-blur-sm px-2 py-1 rounded hover:bg-cyan-700 transition shadow-sm border border-cyan-400 text-white">🔄 同步最新資料</button>
+        </div>
+        <div class="relative">
+            <button id="menuBtn" onclick="toggleMenu()" class="text-white hover:text-gray-200 focus:outline-none drop-shadow-md p-1 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <div id="dropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-md rounded-lg shadow-xl py-2 text-gray-800 font-medium border border-gray-100 overflow-hidden">
+                <a href="#" class="block px-4 py-3 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition" onclick="showPage('home')">🏠 首頁封面</a>
+                <a href="#" class="block px-4 py-3 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition" onclick="showPage('quarterly')">👥 季繳會員</a>
+                <a href="#" class="block px-4 py-3 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition" onclick="showPage('casual')">🏸 臨打球員</a>
+                <a href="#" class="block px-4 py-3 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition admin-only hidden" onclick="showPage('operations')">📊 營運系統</a>
+                <a href="#" class="block px-4 py-3 hover:bg-blue-50 hover:text-blue-600 border-b border-gray-50 transition admin-only hidden" onclick="showPage('sysAdmin')">⚙️ 系統管理</a>
+                <a href="#" class="block px-4 py-3 hover:bg-red-50 text-red-600 transition" onclick="logout()">🚪 登出系統</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 首頁 -->
+    <div id="page-home" class="page-section active w-full h-screen"></div>
+
+    <!-- 頁面容器 -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 relative z-10">
+        
+        <!-- 季繳會員 -->
+        <div id="page-quarterly" class="page-section bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-8 border border-white/40 min-h-[75vh]">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-l-4 border-blue-600 pl-3 gap-3">
+                <h2 class="text-2xl font-bold text-gray-800">季繳會員管理</h2>
+                <div class="flex w-full sm:w-auto gap-2">
+                    <button onclick="executeMemberRollover()" class="admin-only hidden bg-green-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-green-700 font-medium text-sm transition flex-1 sm:flex-none flex items-center justify-center">🔄 執行會員換季</button>
+                    <button onclick="openAddMemberModal()" class="admin-only hidden bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 font-medium text-sm transition flex-1 sm:flex-none flex items-center justify-center">＋ 新增會員</button>
+                </div>
+            </div>
+            
+            <div class="mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-700 flex items-center"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm mr-2 shadow-sm border border-green-200">本季</span> 當前會員名單</h3>
+                    <div class="flex items-center mt-2 sm:mt-0 text-sm">
+                        <label class="font-bold text-gray-600 mr-2">當季會費:</label>
+                        <div class="relative">
+                            <span class="absolute left-2 top-1.5 text-gray-500">$</span>
+                            <input type="number" id="currentSeasonFee" value="2000" class="w-24 p-1.5 pl-6 border border-gray-300 rounded outline-none focus:border-blue-500 text-gray-800 font-bold" onchange="alert('當季會費已設定為: $' + this.value)">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">繳費狀態</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">請假紀錄</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作與轉季</th>
+                                </tr>
+                            </thead>
+                            <tbody id="currentMembersList" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-700 flex items-center"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm mr-2 border border-gray-200">上季</span> 歷史會員名單</h3>
+                    <div class="flex items-center mt-2 sm:mt-0 text-sm">
+                        <label class="font-bold text-gray-500 mr-2">上季會費:</label>
+                        <span class="text-gray-600 font-bold" id="pastSeasonFeeDisplay">讀取中...</span>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden opacity-80">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結算狀態</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">請假總計</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pastMembersList" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 臨打球員 -->
+        <div id="page-casual" class="page-section bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-8 border border-white/40 min-h-[75vh]">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-emerald-500 pl-3">臨打球員紀錄</h2>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <form onsubmit="submitCasualLog(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">活動日期</label>
+                            <input type="date" id="logDate" required class="w-full p-2.5 border border-gray-300 rounded-lg outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">臨打姓名</label>
+                            <input type="text" id="playerName" required class="w-full p-2.5 border border-gray-300 rounded-lg outline-none" placeholder="輸入球友暱稱">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">實收費用</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-gray-500">$</span>
+                                <input type="number" id="fee" required class="w-full p-2.5 pl-8 border border-gray-300 rounded-lg outline-none" value="230">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">收款方式</label>
+                            <select id="paymentMethod" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none">
+                                <option value="現金">💵 現金</option>
+                                <option value="LINE Pay">📱 LINE Pay</option>
+                                <option value="轉帳">🏦 轉帳</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-5 mt-5">
+                        <h4 class="text-gray-600 font-bold mb-3 text-sm">當次用球紀錄 <span class="text-xs font-normal text-gray-400">(供幹部或管理員填寫)</span></h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2">使用羽球型號</label>
+                                <select id="shuttlecockModel" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2">消耗羽球數 (顆)</label>
+                                <input type="number" id="ballsUsed" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none" placeholder="輸入消耗總顆數">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition shadow-md mt-4">新增臨打紀錄</button>
+                </form>
+            </div>
+
+            <!-- 今日臨打清單 -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+                <h3 class="font-bold text-gray-800 mb-4 text-lg border-b pb-2">📅 今日臨打登記清單</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 bg-white">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">實收費用</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">付款方式</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">用球數</th>
+                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="todayCasualListTbody" class="divide-y divide-gray-100">
+                            <!-- JS 動態產生 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 營運系統 -->
+        <div id="page-operations" class="page-section bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-8 border border-white/40 min-h-[75vh]">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-l-4 border-purple-600 pl-3">
+                <h2 class="text-2xl font-bold text-gray-800">營運結算總覽</h2>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="bg-green-100 px-4 py-2 rounded-lg flex items-center justify-center border border-green-300 shadow-sm flex-1 sm:flex-none">
+                        <span class="text-green-700 font-bold text-sm mr-2">營運保留金</span>
+                        <span class="text-green-800 font-bold text-sm" id="dash-reserve-fund">$0</span>
+                    </div>
+                    <button onclick="executeSeasonRollover()" class="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-purple-700 font-medium text-sm transition flex items-center justify-center flex-1 sm:flex-none">
+                        🔄 執行季度結算
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- 總收入 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm font-medium mb-1">當季總收入 (含季繳/臨打)</p>
+                    <p class="text-2xl font-bold text-blue-600" id="dash-income">$0</p>
+                </div>
+                <!-- 場地費 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 text-sm font-medium mb-1">當季場地費總計</p>
+                    <p class="text-2xl font-bold text-red-600" id="dash-courtFee">$0</p>
+                </div>
+                <!-- 羽球費 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <p class="text-gray-500 text-sm font-medium">羽球消耗</p>
+                        <div class="flex bg-gray-100 rounded p-0.5">
+                            <button onclick="toggleBallCostView('month')" id="btnBallMonth" class="px-2 py-1 text-xs rounded bg-white shadow-sm font-bold text-gray-800">月</button>
+                            <button onclick="toggleBallCostView('season')" id="btnBallSeason" class="px-2 py-1 text-xs rounded text-gray-500 hover:bg-gray-200">季</button>
+                        </div>
+                    </div>
+                    <p class="text-2xl font-bold text-red-600" id="dash-ballCost">$0</p>
+                    <p class="text-xs text-gray-400 mt-1" id="dash-ballCount">消耗: 0 顆</p>
+                </div>
+                <!-- 淨結餘 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border-2 border-gray-100" id="dash-balance-box">
+                    <p class="text-gray-600 text-sm font-bold mb-1">目前淨結餘 (盈虧)</p>
+                    <p class="text-3xl font-bold" id="dash-balance">$0</p>
+                </div>
+            </div>
+
+            <!-- 上季歷史結算 -->
+            <div class="mb-8">
+                <h3 class="font-bold text-gray-600 mb-3 text-sm flex items-center justify-between cursor-pointer" onclick="document.getElementById('pastSeasonGrid').classList.toggle('hidden')">
+                    <div class="flex items-center">
+                        <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs mr-2">上季</span> 歷史結算數據
+                    </div>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200">顯示/隱藏 🔽</span>
+                </h3>
+                <div id="pastSeasonGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 opacity-80 hidden">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <p class="text-gray-500 text-xs font-medium mb-1">總收入</p>
+                        <p class="text-lg font-bold text-gray-700" id="dash-past-income">$0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <p class="text-gray-500 text-xs font-medium mb-1">場地費</p>
+                        <p class="text-lg font-bold text-gray-700" id="dash-past-courtFee">$0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <p class="text-gray-500 text-xs font-medium mb-1">羽球消耗</p>
+                        <p class="text-lg font-bold text-gray-700" id="dash-past-ballCost">$0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <p class="text-gray-600 text-xs font-bold mb-1">淨結餘</p>
+                        <p class="text-xl font-bold text-gray-700" id="dash-past-balance">$0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 會員請假統計 -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h3 class="font-bold text-gray-800 mb-4 text-lg border-b pb-2 flex justify-between items-center">
+                    <span>當季會員請假統計 (退費參考)</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50 border-y border-gray-200">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">會員姓名</th>
+                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">繳費狀態</th>
+                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">請假次數</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">請假日期紀錄</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaveCountTbody" class="divide-y divide-gray-100">
+                            <!-- JS 動態產生 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 登記場地費 -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="font-bold text-gray-800 mb-4 text-lg border-b pb-2">場地費用登記</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm text-gray-600 font-bold mb-1">季節與計費</label>
+                        <select id="courtSeasonType" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none">
+                            <option value="summer">夏季場地費</option>
+                            <option value="winter">冬季場地費</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 font-bold mb-1">單次 (兩小時) 費用</label>
+                        <input type="number" id="courtPrice" placeholder="例: 1200" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 font-bold mb-1">次數</label>
+                        <input type="number" id="courtTimes" placeholder="例: 13" class="w-full p-2.5 border border-gray-300 rounded-lg outline-none">
+                    </div>
+                    <button onclick="calculateCourtFee()" class="bg-purple-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-purple-700 transition">新增紀錄</button>
+                </div>
+            </div>
+
+            <!-- 羽球型號與成本設定 (從系統管理搬移過來) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+                <h3 class="font-bold text-gray-800 mb-4 text-lg border-b pb-2">🏸 羽球型號與成本設定</h3>
+                <p class="text-sm text-gray-500 mb-4">設定各型號的整桶價格與顆數，系統將自動無條件進位計算單顆成本供臨打紀錄使用。</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-5">
+                    <input type="text" id="newShuttleModel" placeholder="型號 (例: RSL 4號)" class="p-2.5 border border-gray-300 rounded-lg outline-none">
+                    <input type="number" id="newShuttlePrice" placeholder="一桶多少錢 (例: 480)" class="p-2.5 border border-gray-300 rounded-lg outline-none">
+                    <input type="number" id="newShuttleCount" placeholder="一桶幾顆 (例: 12)" class="p-2.5 border border-gray-300 rounded-lg outline-none">
+                    <button onclick="addShuttleModel()" class="bg-red-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-red-700 transition">新增型號</button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 bg-gray-50 border rounded-lg overflow-hidden">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">型號</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">整桶價格</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">單顆成本</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shuttleConfigList" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系統管理 -->
+        <div id="page-sysAdmin" class="page-section bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-8 border border-white/40 min-h-[75vh]">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-3">系統管理</h2>
+
+            <!-- 人員帳號管理區 (補回) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="font-bold text-gray-800 text-lg">人員帳號權限管理</h3>
+                    <button onclick="openAddUserModal()" class="bg-blue-600 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-blue-700 transition text-sm">＋ 新增使用者</button>
+                </div>
+                
+                <p class="text-sm text-gray-500 mb-4">不管是 Staff (一般幹部) 還是 Admin (管理員)，現在都需要設定專屬的帳號名稱與密碼才能登入系統。Admin 擁有一切權限，Staff 則無法查看營運報表等敏感資訊。</p>
+
+                <table class="min-w-full divide-y divide-gray-200 bg-white border rounded-lg">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">姓名 / 狀態</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">權限角色</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userListTbody" class="divide-y divide-gray-100">
+                        <!-- JS 動態產生 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 季繳會員新增/編輯 Modal -->
+    <div id="memberModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md m-4 border border-gray-200">
+            <h3 id="modalTitle" class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">新增/編輯會員</h3>
+            <input type="hidden" id="modalMemberId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">姓名</label>
+                    <input type="text" id="modalName" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">繳費狀態</label>
+                    <select id="modalStatus" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500 bg-white">
+                        <option value="未繳費">未繳費</option>
+                        <option value="已繳費">已繳費</option>
+                    </select>
+                </div>
+                <div id="leaveSection">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">請假紀錄 <span class="text-gray-400 font-normal">(多筆請用逗號分隔)</span></label>
+                    <input type="text" id="modalLeaves" placeholder="例: 09/10, 09/22" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500">
+                    <p class="text-xs text-red-500 mt-1">若要刪除或修改請假日期，請直接在此文字框編輯即可。</p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="closeMemberModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition">取消</button>
+                <button onclick="saveMember()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 請假日期選擇 Modal -->
+    <div id="leaveDateModal" class="hidden fixed inset-0 bg-black/50 z-[70] flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm m-4 border border-gray-200">
+            <h3 class="text-xl font-bold mb-2 text-gray-800">新增請假紀錄</h3>
+            <p id="leaveModalMemberName" class="text-sm text-gray-500 mb-4 pb-2 border-b">為會員請假</p>
+            <input type="hidden" id="leaveModalMemberId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">請選擇請假日期</label>
+                    <input type="date" id="leaveDatePicker" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="closeLeaveDateModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition">取消</button>
+                <button onclick="submitLeaveDate()" class="px-4 py-2 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition">確定請假</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用者編輯/新增 Modal -->
+    <div id="userModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm m-4 border border-gray-200">
+            <h3 id="userModalTitle" class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">新增使用者</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">登入帳號 (ID) <span class="text-red-500">*</span></label>
+                    <input type="text" id="modalUserId" placeholder="例如: admin01" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">登入系統時使用的帳號，設定後不可修改。</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">姓名 / 暱稱</label>
+                    <input type="text" id="modalUserName" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">權限角色</label>
+                    <select id="modalUserRole" onchange="toggleUserPasswordVisibility()" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500 bg-white">
+                        <option value="Admin">Admin (管理員 - 完整權限)</option>
+                        <option value="Staff">Staff (一般幹部 - 僅能點名收費)</option>
+                    </select>
+                </div>
+                <div id="userPasswordSection">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">登入密碼 <span class="text-red-500">*</span></label>
+                    <input type="text" id="modalUserPassword" placeholder="請設定密碼" class="w-full p-2.5 border border-gray-300 rounded outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="closeUserModal()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition">取消</button>
+                <button onclick="saveUser()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">儲存</button>
+            </div>
+        </div>
+    </div> <!-- end appContainer -->
+
+    <script src="app.js"></script>
+</body>
+</html>
